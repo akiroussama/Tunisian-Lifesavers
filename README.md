@@ -21,7 +21,20 @@ Les données de départ (`data/seed.json`) viennent de la réunion du 21 novembr
 
 ## Lecture publique, édition par code d'équipe
 
-Tout le monde peut consulter le site. Pour attribuer, modifier ou commenter, un membre clique sur **Espace membres** et saisit le code d'équipe (variable `EDIT_CODE`), partagé dans le groupe WhatsApp. Sans `EDIT_CODE` (en local), l'édition est libre.
+Tout le monde peut consulter le site. Pour attribuer, commenter, créer une action ou ajouter des images, un membre clique sur **Espace membres**, choisit son prénom et saisit le code d'équipe partagé dans le groupe WhatsApp. Chaque modification est signée dans l'historique de l'action.
+
+## Où vivent les données
+
+- **Supabase (site en ligne)** : `public/config.js` pointe vers le projet Supabase. Le navigateur lit les tables `tl_items` et `tl_images` et écrit via les fonctions `tl_write` et `tl_add_image`, qui vérifient le code d'équipe (stocké haché dans `tl_settings`). Schéma : `supabase/migration.sql`. Données de départ : `node scripts/seed-sql.js`.
+- **Fichier local** : sans Supabase, le serveur Node garde tout dans `data/db.json` et les images dans `data/uploads/`, et protège l'écriture avec `EDIT_CODE`.
+
+Vercel (statique) et le serveur Node sur le VPS peuvent tourner en même temps sur les mêmes données Supabase : il suffit de donner `SUPABASE_URL` et `SUPABASE_KEY` au serveur.
+
+Changer le code d'équipe (dans l'éditeur SQL de Supabase) :
+
+```sql
+update public.tl_settings set value = encode(extensions.digest('NOUVEAU-CODE', 'sha256'), 'hex') where key = 'edit_code_sha256';
+```
 
 ## Lancer en local
 
@@ -34,15 +47,15 @@ npm test             # tests de l'API
 
 Les données vivent dans `data/db.json` (créé à partir de `data/seed.json` au premier lancement, ignoré par git).
 
-## Aperçu sur Vercel
+## Site en ligne sur Vercel
 
-Vercel sert le dossier `public/` en statique (voir `vercel.json`) : le site s'affiche avec les données de départ, en lecture seule, car Vercel ne garde pas de fichier `db.json`. Pour attribuer et modifier les actions, il faut le serveur Node (VPS ci-dessous) ou brancher une base de données.
+Vercel sert le dossier `public/` en statique (voir `vercel.json`), et les données passent par Supabase : rien à configurer côté Vercel.
 
 ## Déployer sur le VPS (Docker)
 
 ```bash
 git clone https://github.com/akiroussama/Tunisian-Lifesavers.git && cd Tunisian-Lifesavers
-cp .env.example .env     # puis choisir un vrai EDIT_CODE
+cp .env.example .env     # garde SUPABASE_URL/SUPABASE_KEY pour partager les données du site en ligne
 docker compose up -d --build
 ```
 
@@ -58,6 +71,8 @@ Sauvegarde : `docker cp tunisian-lifesavers:/app/storage/db.json ./backup-$(date
 
 ```
 server.js          serveur HTTP + API JSON (sans dépendance)
+public/core.js     règles métier partagées entre le serveur et le navigateur
+supabase/          schéma de la base en ligne
 public/            site (HTML, CSS, JS vanilla)
 data/seed.json     données initiales
 test/              tests de l'API (node --test)
