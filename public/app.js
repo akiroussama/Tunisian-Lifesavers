@@ -1049,7 +1049,6 @@
         if (!res.ok) { S.code = ""; store.set("tl_code", null); }
       }
       renderEditToggle();
-      if (S.data.staticMode) document.body.insertAdjacentHTML("afterbegin", '<div style="background:#1B1416;color:#fff;text-align:center;font-size:13px;padding:8px 16px">Version de démonstration en lecture seule : l\'édition nécessite le serveur (voir README).</div>');
       render();
     } catch (e) {
       main.innerHTML = `<div class="wrap page"><div class="empty">Impossible de charger les données (${esc(e.message)}). Réessayez dans un instant.</div></div>`;
