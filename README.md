@@ -34,6 +34,10 @@ npm test             # tests de l'API
 
 Les données vivent dans `data/db.json` (créé à partir de `data/seed.json` au premier lancement, ignoré par git).
 
+## Aperçu sur Vercel
+
+Vercel sert le dossier `public/` en statique (voir `vercel.json`) : le site s'affiche avec les données de départ, en lecture seule, car Vercel ne garde pas de fichier `db.json`. Pour attribuer et modifier les actions, il faut le serveur Node (VPS ci-dessous) ou brancher une base de données.
+
 ## Déployer sur le VPS (Docker)
 
 ```bash

@@ -36,7 +36,14 @@
     return json;
   }
   async function load() {
-    S.data = await api("GET", "data");
+    try {
+      S.data = await api("GET", "data");
+    } catch (e) {
+      // Hébergement statique (ex. aperçu Vercel) : pas d'API, données de départ en lecture seule.
+      const res = await fetch("/seed.json");
+      if (!res.ok) throw e;
+      S.data = { ...(await res.json()), editProtected: true, staticMode: true };
+    }
   }
   async function save(collection, item, patch) {
     try {
@@ -520,7 +527,7 @@
 
         ${(a.history || []).length ? `<div class="block"><h4>Historique</h4><ul class="history">${[...a.history].reverse().map((h) => `<li><span>${esc(h.text.replace(/(\d{4}-\d{2}-\d{2})/, (x) => fmtDate(x)))}</span><span>${fmtDateTime(h.at)}</span></li>`).join("")}</ul></div>` : ""}
 
-        ${ed ? `<div class="block row between"><span class="tiny muted">Modifications enregistrées automatiquement.</span><button class="btn sm danger" data-delete>Supprimer l'action</button></div>` : `<div class="block"><p class="small muted">${ICON.lock} Passez en mode édition pour modifier cette action.</p></div>`}
+        ${ed ? `<div class="block row between"><span class="tiny muted">Modifications enregistrées automatiquement.</span><button class="btn sm danger" data-delete>Supprimer l'action</button></div>` : `<div class="block"><p class="small muted row" style="gap:6px">${ICON.lock}${S.data.staticMode ? "Version de démonstration : lecture seule." : "Passez en mode édition pour modifier cette action."}</p></div>`}
       </div>`;
   }
 
@@ -970,7 +977,7 @@
   // ---------------------------------------------------------------- mode édition
   function renderEditToggle() {
     const b = $("#editToggle");
-    if (!S.data || !S.data.editProtected) { b.hidden = true; return; }
+    if (!S.data || !S.data.editProtected || S.data.staticMode) { b.hidden = true; return; }
     b.hidden = false;
     b.classList.toggle("on", Boolean(S.code));
     b.innerHTML = S.code ? `${ICON.unlock}<span class="lbl">Mode édition</span>` : `${ICON.lock}<span class="lbl">Espace membres</span>`;
@@ -1042,6 +1049,7 @@
         if (!res.ok) { S.code = ""; store.set("tl_code", null); }
       }
       renderEditToggle();
+      if (S.data.staticMode) document.body.insertAdjacentHTML("afterbegin", '<div style="background:#1B1416;color:#fff;text-align:center;font-size:13px;padding:8px 16px">Version de démonstration en lecture seule : l\'édition nécessite le serveur (voir README).</div>');
       render();
     } catch (e) {
       main.innerHTML = `<div class="wrap page"><div class="empty">Impossible de charger les données (${esc(e.message)}). Réessayez dans un instant.</div></div>`;
