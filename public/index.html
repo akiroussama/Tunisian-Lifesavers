@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tunisian Lifesavers · Don de sang en Tunisie</title>
+  <meta name="description" content="Tunisian Lifesavers, collectif bénévole pour le don de sang en Tunisie : équipe, réunions, actions, collectes et partenaires.">
+  <meta name="theme-color" content="#B3122E">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Aller au contenu</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/" aria-label="Accueil Tunisian Lifesavers">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5c-.4 0-.8.2-1 .5C11.6 8 6 14.6 6 20a10 10 0 0 0 20 0c0-5.4-5.6-12-9-17-.2-.3-.6-.5-1-.5Z" fill="currentColor"/><path d="M13 19h6M16 16v6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <span>Tunisian <b>Lifesavers</b></span>
+      </a>
+      <button class="menu-btn" id="menuBtn" aria-label="Ouvrir le menu" aria-expanded="false"><span></span><span></span></button>
+      <nav class="nav" id="nav" aria-label="Navigation principale">
+        <a href="#/" data-route="home">Accueil</a>
+        <a href="#/actions" data-route="actions">Actions</a>
+        <a href="#/reunions" data-route="reunions">Réunions</a>
+        <a href="#/equipe" data-route="equipe">Équipe</a>
+        <a href="#/collectes" data-route="collectes">Collectes</a>
+        <a href="#/partenaires" data-route="partenaires">Partenaires</a>
+        <a href="#/donner" data-route="donner" class="nav-cta">Donner son sang</a>
+      </nav>
+      <button class="edit-toggle" id="editToggle" type="button"></button>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1"></main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <strong>Tunisian Lifesavers</strong>
+        <p>Collectif bénévole pour le don de sang en Tunisie, en lien avec le Centre national de transfusion sanguine.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#/donner">Où et comment donner</a>
+        <a href="https://www.cnts.tn" target="_blank" rel="noopener">Site du CNTS</a>
+        <a href="#/reunions">Comptes rendus</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+  <aside class="drawer" id="drawer" aria-modal="true" role="dialog" aria-labelledby="drawerTitle" hidden></aside>
+  <dialog class="modal" id="modal"></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
