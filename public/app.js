@@ -35,7 +35,8 @@
   async function sb(path, opts = {}) {
     const res = await fetch(`${SB.url}/rest/v1/${path}`, {
       ...opts,
-      headers: { apikey: SB.key, Authorization: "Bearer " + SB.key, "Content-Type": "application/json", ...(opts.headers || {}) },
+      // Les clés « publishable » (sb_publishable_…) ne sont pas des JWT : on ne les met que dans l'en-tête apikey.
+      headers: { apikey: SB.key, ...(SB.key.startsWith("eyJ") ? { Authorization: "Bearer " + SB.key } : {}), "Content-Type": "application/json", ...(opts.headers || {}) },
     });
     const text = await res.text();
     let json = null;
