@@ -22,29 +22,149 @@
   const canEdit = () => S.data && (!S.data.editProtected || Boolean(S.code));
 
   // ---------------------------------------------------------------- API
+  // Deux back-ends possibles : Supabase (site en ligne, partagé) ou l'API du serveur Node (data/db.json).
+  const CFG = window.TL_CONFIG || {};
+  const SB = CFG.supabaseUrl && CFG.supabaseKey ? { url: CFG.supabaseUrl.replace(/\/$/, ""), key: CFG.supabaseKey } : null;
+  const me = () => store.get("tl_me") || "";
+
+  function authError(msg) {
+    S.code = ""; store.set("tl_code", null); renderEditToggle();
+    return new Error(msg || "Code d'équipe requis");
+  }
+
+  async function sb(path, opts = {}) {
+    const res = await fetch(`${SB.url}/rest/v1/${path}`, {
+      ...opts,
+      headers: { apikey: SB.key, Authorization: "Bearer " + SB.key, "Content-Type": "application/json", ...(opts.headers || {}) },
+    });
+    const text = await res.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch { /* réponse vide */ }
+    if (!res.ok) {
+      if (json && json.code === "28000") throw authError("Code d'équipe incorrect");
+      throw new Error((json && json.message) || "Erreur " + res.status);
+    }
+    return json;
+  }
+  const rpc = (fn, args) => sb("rpc/" + fn, { method: "POST", body: JSON.stringify(args) });
+
+  async function sbLoadAll() {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const page = await sb("tl_items?select=collection,id,data&order=collection,id", { headers: { Range: `${from}-${from + 999}` } });
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
+    const db = { members: [], meetings: [], actions: [], drives: [], partners: [] };
+    for (const r of rows) {
+      if (r.collection === "group") db.group = r.data;
+      else if (db[r.collection]) db[r.collection].push({ ...r.data, id: r.id });
+    }
+    // Ordre stable : ordre de création
+    for (const c of Object.keys(db)) if (Array.isArray(db[c])) db[c].sort((x, y) => String(x.createdAt || x.id).localeCompare(String(y.createdAt || y.id)));
+    return db;
+  }
+
+  async function sbApi(method, path, body) {
+    const parts = path.split("/").filter(Boolean);
+    if (parts[0] === "uploads" && method === "POST") {
+      const m = /^data:(image\/[a-z]+);base64,(.+)$/.exec(body.data || "");
+      if (!m) throw new Error("Image invalide");
+      const id = TLCore.randomId("img");
+      await rpc("tl_add_image", { code: S.code, img_id: id, mime: m[1], data: m[2], name: body.name || null });
+      return { url: "supabase:" + id };
+    }
+    const [collection, id] = parts;
+    const db = {};
+    for (const c of TLCore.COLLECTIONS) db[c] = S.data[c].map((x) => ({ ...x }));
+    if (id) {
+      // Relire l'élément juste avant de le modifier, pour ne pas écraser le travail d'un autre membre.
+      const fresh = await sb(`tl_items?select=id,data&collection=eq.${encodeURIComponent(collection)}&id=eq.${encodeURIComponent(id)}`);
+      const list = db[collection] || [];
+      const i = list.findIndex((x) => x.id === id);
+      if (fresh && fresh[0]) { if (i === -1) list.push({ ...fresh[0].data, id }); else list[i] = { ...fresh[0].data, id }; }
+      else if (i !== -1) list.splice(i, 1);
+    }
+    let out;
+    try { out = TLCore.applyOp(db, { method, parts, body: body || {}, by: me() }); }
+    catch (e) { throw new Error(e.message); }
+    await rpc("tl_write", {
+      code: S.code,
+      writes: out.writes.map((w) => ({ collection: w.collection, id: w.item.id, data: w.item })),
+      deletes: out.deletes,
+    });
+    return out.body;
+  }
+
   async function api(method, path, body) {
+    if (SB) return sbApi(method, path, body);
     const res = await fetch("/api/" + path, {
       method,
-      headers: { "Content-Type": "application/json", "X-Edit-Code": S.code },
+      headers: { "Content-Type": "application/json", "X-Edit-Code": S.code, "X-Edit-By": encodeURIComponent(me()) },
       body: body ? JSON.stringify(body) : undefined,
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      if (res.status === 401) { S.code = ""; store.set("tl_code", null); renderEditToggle(); }
+      if (res.status === 401) throw authError(json.error);
       throw new Error(json.error || "Erreur " + res.status);
     }
     return json;
   }
+
+  async function checkCode(code) {
+    if (SB) return (await rpc("tl_check", { code })) === true;
+    const res = await fetch("/api/auth", { method: "POST", headers: { "X-Edit-Code": code } });
+    return res.ok;
+  }
+
   async function load() {
+    if (SB) { S.data = { ...(await sbLoadAll()), editProtected: true }; return; }
     try {
-      S.data = await api("GET", "data");
+      S.data = await (await fetch("/api/data")).json();
+      if (!S.data.actions) throw new Error("API indisponible");
     } catch (e) {
-      // Hébergement statique (ex. aperçu Vercel) : pas d'API, données de départ en lecture seule.
+      // Hébergement statique sans base : données de départ en lecture seule.
       const res = await fetch("/seed.json");
       if (!res.ok) throw e;
       S.data = { ...(await res.json()), editProtected: true, staticMode: true };
     }
   }
+
+  // Images : "/uploads/…" (serveur Node) ou "supabase:img_…" (table tl_images).
+  const imgCache = new Map();
+  async function imageSrc(url) {
+    if (!url.startsWith("supabase:")) return url;
+    if (imgCache.has(url)) return imgCache.get(url);
+    const p = sb(`tl_images?select=mime,data&id=eq.${encodeURIComponent(url.slice(9))}`).then((r) => (r && r[0] ? `data:${r[0].mime};base64,${r[0].data}` : ""));
+    imgCache.set(url, p);
+    return p;
+  }
+
+  // Réduit l'image côté navigateur (1600 px max) avant l'envoi.
+  function resizeImage(file) {
+    return new Promise((resolve, reject) => {
+      if (!/^image\//.test(file.type)) return reject(new Error("Ce fichier n'est pas une image"));
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Lecture impossible"));
+      reader.onload = () => {
+        if (file.type === "image/gif" && file.size < 2_000_000) return resolve(reader.result);
+        const img = new Image();
+        img.onerror = () => reject(new Error("Image illisible"));
+        img.onload = () => {
+          const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/jpeg", 0.85));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function save(collection, item, patch) {
     try {
       let out;
@@ -347,7 +467,7 @@
     return `<a class="task ${a.status === "done" ? "done" : ""}" href="#/actions/${a.id}" draggable="${canEdit()}" data-id="${a.id}">
       <div class="task-title">${esc(a.title)}</div>
       <div class="task-meta">
-        <div class="chips">${deadlineChip(a)}${prioChip(a.priority)}</div>
+        <div class="chips">${deadlineChip(a)}${prioChip(a.priority)}${(a.comments || []).length ? `<span class="chip" title="Commentaires">💬 ${a.comments.length}</span>` : ""}${(a.images || []).length ? `<span class="chip" title="Images">🖼 ${a.images.length}</span>` : ""}</div>
         ${avatar(m)}
       </div>
     </a>`;
@@ -513,9 +633,20 @@
           </div>
         </div>
 
+        <div class="block" data-drop>
+          <div class="row between" style="margin-bottom:12px"><h4 style="margin:0">Images${(a.images || []).length ? ` (${a.images.length})` : ""}</h4>
+            ${ed ? `<label class="btn sm">${ICON.plus}Ajouter<input type="file" accept="image/*" multiple data-upload hidden></label>` : ""}</div>
+          ${(a.images || []).length ? `<div class="gallery">${a.images.map((im) => `<figure class="thumb" data-img="${esc(im.id)}">
+              <img alt="${esc(im.name)}" data-src="${esc(im.url)}">
+              ${ed ? `<button class="thumb-del" data-del-img="${esc(im.id)}" aria-label="Supprimer l'image" title="Supprimer">×</button>` : ""}
+              <figcaption>${esc(im.author || "")} · ${fmtDateTime(im.at)}</figcaption></figure>`).join("")}</div>`
+            : `<p class="small muted">${ed ? "Ajoutez une photo, une capture ou un visuel (vous pouvez aussi coller une image avec Ctrl+V)." : "Aucune image."}</p>`}
+          <p class="tiny muted" data-upload-status hidden></p>
+        </div>
+
         <div class="block">
           <h4>Commentaires</h4>
-          ${(a.comments || []).length ? (a.comments || []).map((c) => `<div class="comment"><div class="row between"><span class="who">${esc(c.author)}</span><span class="tiny muted">${fmtDateTime(c.at)}</span></div><p class="small" style="margin-top:4px;white-space:pre-wrap">${esc(c.text)}</p></div>`).join("") : `<p class="small muted">Aucun commentaire pour l'instant.</p>`}
+          ${(a.comments || []).length ? (a.comments || []).map((c) => `<div class="comment"><div class="row between"><span class="who">${esc(c.author)}</span><span class="row" style="gap:6px"><span class="tiny muted">${fmtDateTime(c.at)}</span>${ed ? `<button class="btn ghost sm" style="padding:0 6px" data-del-comment="${esc(c.id)}" title="Supprimer le commentaire" aria-label="Supprimer le commentaire">×</button>` : ""}</span></div><p class="small" style="margin-top:4px;white-space:pre-wrap">${esc(c.text)}</p></div>`).join("") : `<p class="small muted">Aucun commentaire pour l'instant.</p>`}
           ${ed ? `<form data-comment style="margin-top:12px" class="stack">
             <div class="row" style="flex-wrap:nowrap">
               <select class="input" name="author" style="width:170px;flex:none" aria-label="Auteur">${S.data.members.map((m) => `<option ${store.get("tl_me") === m.name ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select>
@@ -560,6 +691,57 @@
       closeDrawer();
       toast("Action supprimée");
     });
+    // Images : affichage paresseux, ajout (fichier, glisser-déposer, coller), suppression, agrandissement.
+    $$("img[data-src]", d).forEach(async (img) => { img.src = await imageSrc(img.dataset.src); });
+    $$(".thumb img", d).forEach((img) => img.addEventListener("click", () => {
+      if (!img.src) return;
+      openModal(`<div style="position:relative"><img src="${img.src}" alt="${esc(img.alt)}" style="width:100%;max-height:80vh;object-fit:contain;background:#111;border-radius:18px"><button class="close-x" data-x style="position:absolute;top:12px;right:12px" aria-label="Fermer">×</button></div>`);
+      $("#modal [data-x]").onclick = closeModal;
+    }));
+    const upload = async (files) => {
+      files = [...files].filter((f) => /^image\//.test(f.type));
+      if (!files.length || !canEdit()) return;
+      const status = $("[data-upload-status]", d);
+      let ok = 0;
+      for (let i = 0; i < files.length; i++) {
+        if (status) { status.hidden = false; status.textContent = `Envoi de l'image ${i + 1} sur ${files.length}…`; }
+        try {
+          const data = await resizeImage(files[i]);
+          const { url } = await api("POST", "uploads", { data, name: files[i].name });
+          const updated = await api("POST", `actions/${a.id}/images`, { url, name: files[i].name });
+          const list = S.data.actions; list[list.findIndex((x) => x.id === a.id)] = updated;
+          ok++;
+        } catch (err) { toast(err.message); }
+      }
+      openActionDrawer(a.id); refreshActionsView();
+      if (ok) toast(ok > 1 ? ok + " images ajoutées" : "Image ajoutée");
+    };
+    $("[data-upload]", d)?.addEventListener("change", (e) => upload(e.target.files));
+    const zone = $("[data-drop]", d);
+    if (canEdit() && zone) {
+      zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("dropping"); });
+      zone.addEventListener("dragleave", () => zone.classList.remove("dropping"));
+      zone.addEventListener("drop", (e) => { e.preventDefault(); zone.classList.remove("dropping"); upload(e.dataTransfer.files); });
+      d.onpaste = (e) => { const f = [...((e.clipboardData && e.clipboardData.files) || [])]; if (f.length) { e.preventDefault(); upload(f); } };
+    } else d.onpaste = null;
+    $$("[data-del-img]", d).forEach((b) => b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!(await confirmModal("Supprimer cette image ?", "Elle sera retirée de l'action."))) return;
+      try {
+        const updated = await api("DELETE", `actions/${a.id}/images/${b.dataset.delImg}`);
+        const list = S.data.actions; list[list.findIndex((x) => x.id === a.id)] = updated;
+        openActionDrawer(a.id); refreshActionsView();
+      } catch (err) { toast(err.message); }
+    }));
+    $$("[data-del-comment]", d).forEach((b) => b.addEventListener("click", async () => {
+      if (!(await confirmModal("Supprimer ce commentaire ?", "Cette action est définitive."))) return;
+      try {
+        const updated = await api("DELETE", `actions/${a.id}/comments/${b.dataset.delComment}`);
+        const list = S.data.actions; list[list.findIndex((x) => x.id === a.id)] = updated;
+        openActionDrawer(a.id);
+      } catch (err) { toast(err.message); }
+    }));
+
     $("[data-comment]", d)?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
@@ -989,14 +1171,20 @@
     const m = openModal(`<form data-auth>
       <div class="modal-head"><h3>Espace membres</h3><button type="button" class="close-x" data-x aria-label="Fermer">×</button></div>
       <div class="modal-body"><p class="muted small" style="margin-bottom:12px">Entrez le code d'équipe partagé dans le groupe pour attribuer, modifier et commenter les actions.</p>
-      <div class="field"><label>Code d'équipe</label><input class="input" type="password" name="code" required autocomplete="current-password"></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Je suis</label><select class="input" name="me">${S.data.members.map((m) => `<option ${me() === m.name ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select></div>
+        <div class="field"><label>Code d'équipe</label><input class="input" type="password" name="code" required autocomplete="current-password"></div>
+      </div></div>
       <div class="modal-foot"><button type="button" class="btn" data-x>Annuler</button><button class="btn primary">Entrer</button></div></form>`);
     $$("[data-x]", m).forEach((b) => (b.onclick = closeModal));
     $("[data-auth]", m).addEventListener("submit", async (e) => {
       e.preventDefault();
       const code = new FormData(e.target).get("code");
-      const res = await fetch("/api/auth", { method: "POST", headers: { "X-Edit-Code": code } });
-      if (!res.ok) { toast("Code incorrect"); return; }
+      let ok = false;
+      try { ok = await checkCode(code); } catch { ok = false; }
+      if (!ok) { toast("Code incorrect"); return; }
+      const who = new FormData(e.target).get("me");
+      if (who) store.set("tl_me", who);
       S.code = code; store.set("tl_code", code);
       closeModal(); renderEditToggle(); rerender(); toast("Mode édition activé");
     });
@@ -1045,8 +1233,7 @@
     try {
       await load();
       if (S.code && S.data.editProtected) {
-        const res = await fetch("/api/auth", { method: "POST", headers: { "X-Edit-Code": S.code } });
-        if (!res.ok) { S.code = ""; store.set("tl_code", null); }
+        if (!(await checkCode(S.code).catch(() => false))) { S.code = ""; store.set("tl_code", null); }
       }
       renderEditToggle();
       render();

@@ -14,7 +14,11 @@ const SEED_FILE = path.join(ROOT, "data", "seed.json");
 const PORT = Number(process.env.PORT || 8098);
 const EDIT_CODE = process.env.EDIT_CODE || "";
 
-const COLLECTIONS = ["members", "meetings", "actions", "drives", "partners"];
+const core = require("./public/core.js");
+const { COLLECTIONS, httpError } = core;
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(path.dirname(DATA_FILE), "uploads");
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_KEY = process.env.SUPABASE_KEY || "";
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -22,9 +26,12 @@ const MIME = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
   ".ico": "image/x-icon",
-  ".webmanifest": "application/manifest+json",
 };
+const IMAGE_EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
 
 // ------------------------------------------------------------------ stockage
 function loadDb() {
@@ -42,46 +49,6 @@ function saveDb() {
   const tmp = DATA_FILE + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
   fs.renameSync(tmp, DATA_FILE);
-}
-
-const newId = (prefix) => prefix + "_" + crypto.randomBytes(5).toString("hex");
-const nowIso = () => new Date().toISOString();
-
-// Champs autorisés par collection : tout le reste est ignoré.
-const FIELDS = {
-  members: ["name", "fullName", "role", "focus", "city", "bloodGroup", "phone", "external", "active", "color"],
-  meetings: ["title", "date", "time", "duration", "place", "status", "guests", "summary", "score", "scoreLabel",
-    "scoreComment", "indicators", "chapters", "decisions", "risks", "questions", "speaking", "kelmaUrl", "stats", "notes"],
-  actions: ["title", "description", "assignee", "deadline", "deadlineNote", "status", "priority", "meetingId",
-    "timestamp", "tags"],
-  drives: ["title", "date", "place", "partnerId", "owner", "status", "target", "candidates", "collected", "notes"],
-  partners: ["name", "type", "status", "owner", "contact", "notes", "url"],
-};
-const STATUS = {
-  actions: ["todo", "doing", "done"],
-  drives: ["idea", "contact", "planned", "done", "cancelled"],
-  partners: ["lead", "contact", "active", "paused"],
-  meetings: ["planned", "done"],
-};
-
-function clean(collection, input) {
-  const out = {};
-  for (const f of FIELDS[collection]) if (input[f] !== undefined) out[f] = input[f];
-  if (out.status !== undefined && STATUS[collection] && !STATUS[collection].includes(out.status)) {
-    throw httpError(400, "Statut inconnu : " + out.status);
-  }
-  if (out.deadline && !/^\d{4}-\d{2}-\d{2}$/.test(out.deadline)) throw httpError(400, "Échéance au format AAAA-MM-JJ");
-  if (out.date && !/^\d{4}-\d{2}-\d{2}$/.test(out.date)) throw httpError(400, "Date au format AAAA-MM-JJ");
-  for (const [k, v] of Object.entries(out)) {
-    if (typeof v === "string" && v.length > 5000) throw httpError(400, "Champ trop long : " + k);
-  }
-  return out;
-}
-
-function httpError(status, message) {
-  const e = new Error(message);
-  e.status = status;
-  return e;
 }
 
 // ------------------------------------------------------------------ HTTP
@@ -102,7 +69,7 @@ function readBody(req) {
     const chunks = [];
     req.on("data", (c) => {
       size += c.length;
-      if (size > 1_000_000) {
+      if (size > 5_000_000) {
         reject(httpError(413, "Requête trop volumineuse"));
         req.destroy();
       } else chunks.push(c);
@@ -138,80 +105,44 @@ async function handleApi(req, res, url) {
   }
   if (req.method === "GET" && parts[0] === "health") return send(res, 200, { ok: true });
 
-  const [collection, id, sub] = parts;
-  if (!COLLECTIONS.includes(collection)) throw httpError(404, "Ressource inconnue");
-  const list = db[collection];
-
   if (req.method === "GET") {
-    if (!id) return send(res, 200, list);
-    const item = list.find((x) => x.id === id);
+    const [collection, id] = parts;
+    if (!COLLECTIONS.includes(collection)) throw httpError(404, "Ressource inconnue");
+    if (!id) return send(res, 200, db[collection]);
+    const item = db[collection].find((x) => x.id === id);
     return item ? send(res, 200, item) : send(res, 404, { error: "Introuvable" });
   }
 
   if (!canEdit(req)) throw httpError(401, "Code d'équipe requis pour modifier");
   const body = await readBody(req);
+  const by = decodeURIComponent(String(req.headers["x-edit-by"] || "")).slice(0, 60);
 
-  // Commentaires sur une action : POST /api/actions/:id/comments
-  if (collection === "actions" && sub === "comments" && req.method === "POST") {
-    const item = list.find((x) => x.id === id);
-    if (!item) throw httpError(404, "Action introuvable");
-    const text = String(body.text || "").trim();
-    if (!text) throw httpError(400, "Commentaire vide");
-    if (text.length > 2000) throw httpError(400, "Commentaire trop long");
-    const comment = { id: newId("c"), author: String(body.author || "Équipe").slice(0, 60), text, at: nowIso() };
-    item.comments = [...(item.comments || []), comment];
-    item.updatedAt = nowIso();
-    saveDb();
-    return send(res, 201, item);
+  // Téléversement d'image : POST /api/uploads { data: "data:image/jpeg;base64,...", name }
+  if (parts[0] === "uploads" && req.method === "POST") {
+    const m = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(String(body.data || ""));
+    if (!m) throw httpError(400, "Image invalide");
+    const buf = Buffer.from(m[2], "base64");
+    if (buf.length > 3_000_000) throw httpError(413, "Image trop lourde (3 Mo max)");
+    const id = core.randomId("img");
+    const file = id + "." + IMAGE_EXT[m[1]];
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    fs.writeFileSync(path.join(UPLOAD_DIR, file), buf);
+    return send(res, 201, { url: "/uploads/" + file });
   }
 
-  if (req.method === "POST" && !id) {
-    const item = { id: newId(collection.slice(0, 3)), ...clean(collection, body), createdAt: nowIso(), updatedAt: nowIso() };
-    if (collection === "actions") {
-      item.status = item.status || "todo";
-      item.history = [{ at: nowIso(), text: "Action créée" }];
-      item.comments = [];
-    }
-    list.push(item);
-    saveDb();
-    return send(res, 201, item);
-  }
-
-  const idx = list.findIndex((x) => x.id === id);
-  if (idx === -1) throw httpError(404, "Introuvable");
-
-  if (req.method === "PUT" || req.method === "PATCH") {
-    const before = list[idx];
-    const patch = clean(collection, body);
-    const after = { ...before, ...patch, updatedAt: nowIso() };
-    if (collection === "actions") after.history = [...(before.history || []), ...describeChanges(before, patch)];
-    list[idx] = after;
-    saveDb();
-    return send(res, 200, after);
-  }
-
-  if (req.method === "DELETE") {
-    list.splice(idx, 1);
-    saveDb();
-    return send(res, 200, { ok: true });
-  }
-
-  throw httpError(405, "Méthode non autorisée");
+  const out = core.applyOp(db, { method: req.method, parts, body, by });
+  saveDb();
+  return send(res, out.status, out.body);
 }
 
-const STATUS_LABEL = { todo: "À faire", doing: "En cours", done: "Terminée" };
-function describeChanges(before, patch) {
-  const at = nowIso();
-  const out = [];
-  if (patch.status && patch.status !== before.status) out.push({ at, text: "Statut : " + STATUS_LABEL[patch.status] });
-  if (patch.assignee !== undefined && patch.assignee !== before.assignee) {
-    const m = db.members.find((x) => x.id === patch.assignee);
-    out.push({ at, text: m ? "Attribuée à " + m.name : "Responsable retiré" });
-  }
-  if (patch.deadline !== undefined && patch.deadline !== before.deadline) {
-    out.push({ at, text: patch.deadline ? "Échéance fixée au " + patch.deadline : "Échéance retirée" });
-  }
-  return out;
+function serveUpload(res, url) {
+  const name = path.basename(url.pathname);
+  if (!/^img_[a-z0-9]+\.(jpg|png|webp|gif)$/.test(name)) return send(res, 404, { error: "Introuvable" });
+  fs.readFile(path.join(UPLOAD_DIR, name), (e, buf) => {
+    if (e) return send(res, 404, { error: "Introuvable" });
+    res.writeHead(200, { "Content-Type": MIME[path.extname(name)], "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" });
+    res.end(buf);
+  });
 }
 
 function serveStatic(req, res, url) {
@@ -239,6 +170,13 @@ function createServer() {
     const url = new URL(req.url, "http://localhost");
     try {
       if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
+      if (url.pathname.startsWith("/uploads/")) return serveUpload(res, url);
+      if (url.pathname === "/config.js") {
+        // Avec SUPABASE_URL/SUPABASE_KEY, le serveur partage les données du site en ligne ; sinon il utilise data/db.json.
+        const cfg = SUPABASE_URL ? { supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY } : {};
+        res.writeHead(200, { "Content-Type": MIME[".js"], "Cache-Control": "no-cache" });
+        return res.end("window.TL_CONFIG = " + JSON.stringify(cfg) + ";");
+      }
       if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "Méthode non autorisée" });
       return serveStatic(req, res, url);
     } catch (e) {

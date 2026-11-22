@@ -6,7 +6,10 @@ services:
     ports:
       - "127.0.0.1:8098:8098"
     environment:
-      - EDIT_CODE=${EDIT_CODE:?Définir EDIT_CODE dans .env}
+      - EDIT_CODE=${EDIT_CODE:-}
+      # Avec ces deux variables, le serveur partage les données du site en ligne (Supabase)
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
     volumes:
       - lifesavers-data:/app/storage
 volumes:

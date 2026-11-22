@@ -72,3 +72,23 @@ test("sert le site et bloque la traversée de répertoires", async () => {
   const evil = await call("GET", "/..%2fserver.js");
   assert.doesNotMatch(await evil.text(), /createServer/);
 });
+
+test("téléverser une image et l'attacher à une action", async () => {
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  assert.equal((await call("POST", "/api/uploads", { data: png })).status, 401);
+  const up = await (await call("POST", "/api/uploads", { data: png, name: "logo.png" }, "secret-test")).json();
+  assert.match(up.url, /^\/uploads\/img_[a-z0-9]+\.png$/);
+  const img = await call("GET", up.url);
+  assert.equal(img.headers.get("content-type"), "image/png");
+  const res = await fetch(base + "/api/actions/act_02/images", { method: "POST", headers: { "Content-Type": "application/json", "X-Edit-Code": "secret-test", "X-Edit-By": encodeURIComponent("Dhia") }, body: JSON.stringify({ url: up.url, name: "logo.png" }) });
+  const a = await res.json();
+  assert.equal(a.images.length, 1);
+  assert.equal(a.images[0].author, "Dhia");
+  assert.equal((await call("POST", "/api/actions/act_02/images", { url: "https://evil.example/x.png" }, "secret-test")).status, 400);
+  const after = await (await call("DELETE", `/api/actions/act_02/images/${a.images[0].id}`, null, "secret-test")).json();
+  assert.equal(after.images.length, 0);
+});
+
+test("sans Supabase configuré, /config.js renvoie une configuration vide", async () => {
+  assert.match(await (await call("GET", "/config.js")).text(), /TL_CONFIG = \{\}/);
+});
