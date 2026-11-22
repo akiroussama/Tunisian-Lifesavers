@@ -1,0 +1,13 @@
+{
+  "name": "tunisian-lifesavers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site de gestion et de visibilité du collectif de don de sang Tunisian Lifesavers",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

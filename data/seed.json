@@ -1,0 +1,104 @@
+{
+  "group": {
+    "name": "Tunisian Lifesavers",
+    "tagline": "Collectif bénévole pour le don de sang en Tunisie",
+    "mission": "Rapprocher les donneurs volontaires des centres de transfusion, contrer les idées reçues et organiser des collectes avec les entreprises, les ONG et les associations, main dans la main avec le CNTS."
+  },
+  "members": [
+    { "id": "m_zied", "name": "Zied", "role": "Coordination", "focus": "Anime les réunions et la répartition des tâches", "active": true, "color": "#B3122E" },
+    { "id": "m_dhia", "name": "Dhia", "role": "Application et design", "focus": "Développe l'application d'alerte des donneurs, logo et QR code", "active": true, "color": "#7A1F3D" },
+    { "id": "m_oussama", "name": "Oussama", "role": "Partenariats entreprises et tech", "focus": "Conventions avec les entreprises, renfort technique, comptes rendus", "active": true, "color": "#2F4858" },
+    { "id": "m_jihene", "name": "Jihene", "role": "Collectes institutionnelles", "focus": "Collecte au sein de son unité à l'OMS, groupe logo", "active": true, "color": "#9C4A1A" },
+    { "id": "m_insaf", "name": "Insaf", "role": "Réseau associatif", "focus": "Startups partenaires d'Ahna Maak, pilotage du logo", "active": true, "color": "#5B3E8C" },
+    { "id": "m_mehdi", "name": "Mehdi", "role": "Promotion", "focus": "Diffusion de l'application via le CNTS et ses partenaires", "active": true, "color": "#1F6F5C" },
+    { "id": "m_rahma", "name": "Rahma", "role": "Communication digitale", "focus": "Réseaux sociaux et campagnes auprès des jeunes", "active": true, "color": "#A8326E" },
+    { "id": "m_abdelaziz", "name": "Abdelaziz", "role": "Terrain et associations", "focus": "Lien avec le Croissant-Rouge de la Manouba, retours de terrain", "active": true, "color": "#4A5A23" },
+    { "id": "m_mahdi", "name": "Mahdi", "role": "Membre", "focus": "", "active": true, "color": "#5E5A66" },
+    { "id": "m_hamadi", "name": "Dr Hamadi Akkari", "role": "Référent CNTS", "focus": "Centre national de transfusion sanguine : besoins médicaux, contacts régionaux, diffusion du QR code", "active": true, "external": true, "color": "#14213D" }
+  ],
+  "meetings": [
+    {
+      "id": "mt_2026_11_21",
+      "title": "Réunion de coordination avec le CNTS",
+      "date": "2026-11-21",
+      "time": "20:30",
+      "duration": "1 h 29",
+      "place": "Google Meet",
+      "status": "done",
+      "guests": ["m_hamadi"],
+      "kelmaUrl": "https://shirokko.net/kelma/r/wL0ijkYA-gkCIGDx/",
+      "summary": "Tunisian Lifesavers s'aligne avec le CNTS. L'application de Dhia va s'enrichir (phénotype sanguin, passage en open source) et sera promue partout en Tunisie grâce à un flyer à QR code que le CNTS distribuera dans ses centres régionaux et ses collectes mobiles. En parallèle, le groupe mobilise ses réseaux (entreprises, OMS, associations) pour organiser des collectes d'au moins 40 poches, et se recentre sur la sensibilisation et la communication digitale.",
+      "score": 68,
+      "scoreLabel": "Réunion utile",
+      "scoreComment": "Synergies très concrètes avec le CNTS, mais sans ordre du jour structuré ; certaines échéances (date de sortie de l'application) restent en suspens et la réunion a dépassé l'horaire.",
+      "indicators": [["Objectifs clairs", 75], ["Décisions actées", 65], ["Actions attribuées", 62], ["Parole équilibrée", 72]],
+      "stats": { "speakers": 9, "sentences": 710, "languages": "derja 64 %, français 35 %, anglais 1 %" },
+      "speaking": [["m_hamadi", 2334], ["m_zied", 1062], ["m_dhia", 429], ["m_mehdi", 336], ["m_abdelaziz", 286], ["m_oussama", 224], ["m_jihene", 155], ["m_rahma", 103], ["m_mahdi", 10]],
+      "chapters": [
+        ["00:00", "Accueil et démo de l'application", "Accueil du Dr Akkari ; Dhia présente l'application qui alerte les donneurs éligibles selon leur ville et leur groupe."],
+        ["10:56", "Besoins médicaux du CNTS", "Phénotypage, bilan national du don, rumeurs à contrer, disparités régionales et saisonnières."],
+        ["32:58", "Entreprises, ONG, associations", "Conventions d'entreprise, seuil de 50 candidats par collecte, OMS, Ahna Maak, discours médical unifié."],
+        ["53:37", "Promotion par QR code", "Flyer à QR code diffusé par le CNTS, leçon de hayat.tn, passage de l'application en open source."],
+        ["1:04:33", "Débriefing interne", "Retours de terrain, réseaux sociaux des jeunes, piste RSE écartée : cap sur la sensibilisation."],
+        ["1:19:23", "Prochaines étapes", "Renfort technique pour Dhia, logo d'ici la fin de la semaine prochaine, vidéos éducatives."]
+      ],
+      "decisions": [
+        ["Ajouter le phénotype sanguin (Rhésus C, E, Kell) aux profils donneurs de l'application", "Proposé par le Dr Hamadi · validé par Zied et Dhia", "16:49"],
+        ["Passer l'application en open source pour ne dépendre d'aucun administrateur unique", "Proposé par Zied · validé par le Dr Hamadi", "58:19"],
+        ["Le CNTS diffuse le QR code de l'application dans ses centres régionaux et chez ses partenaires", "Proposé par Mehdi · validé par le Dr Hamadi et Zied · dès que le flyer existe", "1:00:56"],
+        ["Le collectif se consacre à la sensibilisation, sans financer le matériel des centres", "Proposé par Zied · validé par Mehdi", "1:17:05"],
+        ["Finaliser le nouveau logo d'ici la fin de la semaine prochaine, puis se réunir à nouveau", "Proposé par Zied · validé par Dhia", "1:22:39"]
+      ],
+      "risks": [
+        ["Méfiance du public", "Rumeurs de trafic de sang et peur du don freinent le recrutement de donneurs réguliers.", "high", "24:43"],
+        ["Disparités régionales", "Collecte inégale selon les régions, chutes en été et pendant le Ramadan.", "high", "28:50"],
+        ["Logistique limitée", "3 équipes mobiles à Tunis : pas de collecte sous 50 volontaires.", "high", "44:44"],
+        ["Discours contradictoires", "Des règles médicales mal relayées par les bénévoles brouillent la confiance.", "watch", "51:04"],
+        ["Dépendance à un développeur", "Accès admin concentrés ou surcharge : le précédent hayat.tn a disparu ainsi.", "watch", "57:09"],
+        ["Lourdeurs administratives", "Marchés publics, douane, pannes et ruptures de kits découragent les donneurs.", "high", "1:17:35"]
+      ],
+      "questions": [
+        ["L'application rappelle-t-elle automatiquement le donneur deux mois après son dernier don ?", "Posée par Abdelaziz · 09:22", "Dhia était absent à ce moment ; Zied a supposé que oui, sans confirmation technique."],
+        ["Quand l'application sera-t-elle prête pour lancer la communication digitale auprès des jeunes ?", "Posée par Rahma · 1:20:54", "La discussion a bifurqué vers le Croissant-Rouge et le logo : aucune date fixée."],
+        ["Faut-il intégrer au groupe le président du comité local du Croissant-Rouge de la Manouba ?", "Posée par Abdelaziz · 1:21:34", "Notée par Zied, mais pas tranchée avant de passer au logo."]
+      ]
+    },
+    {
+      "id": "mt_2026_11_29",
+      "title": "Point d'étape : logo et application",
+      "date": "2026-11-29",
+      "time": "20:30",
+      "place": "Google Meet",
+      "status": "planned",
+      "notes": "Réunion envisagée une fois le logo finalisé. Date et heure à confirmer.",
+      "summary": "Valider le logo final, faire le point sur le flyer à QR code et fixer une date de sortie de l'application."
+    }
+  ],
+  "actions": [
+    { "id": "act_01", "title": "Soumettre au vote des propositions de logo, puis une version vectorielle", "description": "Proposer plusieurs images pour le nouveau logo, les soumettre au vote du groupe, puis livrer le logo retenu en version vectorielle (SVG) pour le flyer et les réseaux sociaux.", "assignee": "m_dhia", "deadline": "2026-11-26", "deadlineNote": "Avant la finalisation du logo", "status": "todo", "priority": "high", "meetingId": "mt_2026_11_21", "timestamp": "01:37", "tags": ["logo"] },
+    { "id": "act_02", "title": "Ajouter le phénotype sanguin au profil donneur de l'application", "description": "Ajouter les champs Rhésus C, E et Kell au profil donneur, à la demande du CNTS, pour cibler les donneurs compatibles lors des alertes.", "assignee": "m_dhia", "deadline": "", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "16:49", "tags": ["application"] },
+    { "id": "act_03", "title": "Transmettre la carte des centres et les contacts régionaux", "description": "Le CNTS envoie la carte des centres de transfusion, les contacts des responsables régionaux et ses supports de communication.", "assignee": "m_hamadi", "deadline": "", "status": "todo", "priority": "high", "meetingId": "mt_2026_11_21", "timestamp": "40:58", "tags": ["CNTS"] },
+    { "id": "act_04", "title": "Sonder son unité à l'OMS pour une collecte", "description": "Sonder l'unité de plus de 60 personnes à l'OMS pour organiser une collecte sur place. Objectif CNTS : au moins 50 candidats pour 40 poches.", "assignee": "m_jihene", "deadline": "", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "46:01", "tags": ["collecte"] },
+    { "id": "act_05", "title": "Contacter les startups partenaires d'Ahna Maak", "description": "Contacter les startups partenaires de l'association Ahna Maak et prendre rendez-vous au CNTS pour une collecte.", "assignee": "m_insaf", "deadline": "", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "52:28", "tags": ["collecte", "associations"] },
+    { "id": "act_06", "title": "Créer un flyer avec le QR code de l'application", "description": "Concevoir un flyer ou une carte avec le QR code de l'application, que le CNTS distribuera dans ses centres régionaux et ses collectes mobiles.", "assignee": "m_dhia", "deadline": "", "status": "todo", "priority": "high", "meetingId": "mt_2026_11_21", "timestamp": "58:12", "tags": ["application", "communication"] },
+    { "id": "act_07", "title": "Mettre le code de l'application en open source", "description": "Publier le code de l'application sous licence libre pour ne dépendre d'aucun administrateur unique (leçon de hayat.tn).", "assignee": "", "deadline": "", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "58:19", "tags": ["application"] },
+    { "id": "act_08", "title": "Diffuser le QR code aux centres régionaux et aux partenaires", "description": "Le CNTS relaie le QR code auprès de ses centres régionaux et de ses partenaires (Croissant-Rouge, Scouts).", "assignee": "m_hamadi", "deadline": "", "deadlineNote": "Dès réception du flyer", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "1:00:56", "tags": ["CNTS", "communication"] },
+    { "id": "act_09", "title": "Contacter des dirigeants d'usines et d'entreprises IT", "description": "Contacter des dirigeants d'usines (Coficab à Béja) et d'entreprises IT pour signer des conventions de collecte.", "assignee": "m_oussama", "deadline": "", "deadlineNote": "Dès réception des contacts", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "1:07:45", "tags": ["collecte", "entreprises"] },
+    { "id": "act_10", "title": "Épauler Dhia sur l'application et le QR code", "description": "Apporter un renfort technique à Dhia sur le développement de l'application et la génération du QR code.", "assignee": "m_oussama", "deadline": "", "status": "todo", "priority": "medium", "meetingId": "mt_2026_11_21", "timestamp": "1:20:10", "tags": ["application"] },
+    { "id": "act_11", "title": "Finaliser le nouveau logo", "description": "Finaliser le logo avec Dhia, Oussama, Rahma et Jihene.", "assignee": "m_insaf", "deadline": "2026-11-29", "status": "todo", "priority": "high", "meetingId": "mt_2026_11_21", "timestamp": "1:22:02", "tags": ["logo"] },
+    { "id": "act_12", "title": "Envoyer le compte rendu de la réunion au groupe", "description": "Partager le compte rendu Kelma de la réunion du 21 novembre avec tout le groupe.", "assignee": "m_oussama", "deadline": "2026-11-22", "status": "doing", "priority": "high", "meetingId": "mt_2026_11_21", "timestamp": "1:23:36", "tags": ["organisation"] }
+  ],
+  "drives": [
+    { "id": "drv_oms", "title": "Collecte à l'OMS", "place": "Tunis", "partnerId": "pt_oms", "owner": "m_jihene", "status": "idea", "target": 40, "candidates": 60, "notes": "Unité de plus de 60 personnes à sonder." },
+    { "id": "drv_ahna", "title": "Collecte startups Ahna Maak", "place": "CNTS Tunis", "partnerId": "pt_ahna", "owner": "m_insaf", "status": "contact", "target": 40, "notes": "Rendez-vous à prendre au CNTS." },
+    { "id": "drv_coficab", "title": "Convention Coficab", "place": "Béja", "partnerId": "pt_coficab", "owner": "m_oussama", "status": "idea", "target": 40, "notes": "En attente des contacts." }
+  ],
+  "partners": [
+    { "id": "pt_cnts", "name": "CNTS", "type": "Institution", "status": "active", "owner": "m_zied", "contact": "Dr Hamadi Akkari", "notes": "Centre national de transfusion sanguine. Diffuse le QR code, partage les besoins et les contacts régionaux.", "url": "https://www.cnts.tn" },
+    { "id": "pt_oms", "name": "OMS (bureau de Tunis)", "type": "Organisation internationale", "status": "lead", "owner": "m_jihene", "notes": "Collecte possible au sein d'une unité de plus de 60 personnes." },
+    { "id": "pt_ahna", "name": "Ahna Maak", "type": "Association", "status": "contact", "owner": "m_insaf", "notes": "Réseau de startups partenaires." },
+    { "id": "pt_coficab", "name": "Coficab", "type": "Entreprise", "status": "lead", "owner": "m_oussama", "notes": "Usine de Béja : piste de convention d'entreprise." },
+    { "id": "pt_crm", "name": "Croissant-Rouge, comité de la Manouba", "type": "Association", "status": "lead", "owner": "m_abdelaziz", "notes": "Question ouverte : intégrer son président au groupe ?" },
+    { "id": "pt_scouts", "name": "Scouts tunisiens", "type": "Association", "status": "lead", "owner": "", "notes": "Partenaire du CNTS, relais possible du QR code." }
+  ]
+}
